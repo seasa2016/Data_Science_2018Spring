@@ -132,10 +132,7 @@ else:
                 print('test')
                 sys.exit(0)
             soup = bf(r.text.encode('utf-8'),"html.parser")
-            
             content = soup.text
-
-            
             content = soup.text.split("\n")
             #print(content)
             cc=0
@@ -195,9 +192,8 @@ else:
         start_date = int(sys.argv[2])
         end_date = int(sys.argv[3])
         
-        accu=[{},{}]
         data=[]
-        f = open('./ans/all_post.txt','r')
+        f = open('./ans/all_popular.txt','r')
         for line in f:
 
             ll = line.find(',')
@@ -207,5 +203,31 @@ else:
             if( not ( (temp[0] <= end_date) and (temp[0] >= start_date))):
                 continue    
             data.append(temp)
+        
+        like=0
+        boo=0
+
+
+        f = open('popular[{0}-{1}].txt'.format(start_date,end_date),'w')
+        f.write('number of popular articles: {0}\n'.format(len(data)))
+        
+
+        for line in data:
+            time.sleep(0.05)
+            try:
+                r = requests.get(line[2])
+            except requests.exceptions.MissingSchema:
+                print(line)
+                sys.exit(0)
+        
+            soup = bf(r.text.encode('utf-8'),"html.parser")
+            content = soup.text
+            content = soup.text.split()
+
+            for mess in content:
+                if( mess[-3:]=='jpg' or mess[-4:]=='jpeg' or mess[-3:]=='png' or mess[-3:]=='gif'):
+                    f.write(mess+'\n')
+
+
     elif(sys.argv[1] == 'keyword'):
         pass
