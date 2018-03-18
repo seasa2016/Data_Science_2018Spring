@@ -5,6 +5,9 @@ import sys
 import bisect
 from operator import itemgetter
 
+
+start_time = time.time()
+
 if(len(sys.argv) == 1):
     sys.exit(0)
 else:
@@ -111,7 +114,7 @@ else:
         
         accu=[{},{}]
         data=[]
-        f = open('./ans/all_post.txt','r')
+        f = open('all_articles.txt','r')
         for line in f:
 
             ll = line.find(',')
@@ -124,7 +127,7 @@ else:
         like=0
         boo=0
         for line in data:
-            time.sleep(0.05)
+            time.sleep(0.01)
             try:
                 r = requests.get(line[2])
             except requests.exceptions.MissingSchema:
@@ -135,14 +138,14 @@ else:
             content = soup.text
             content = soup.text.split("\n")
             #print(content)
+            
             cc=0
             index = -1
             for __ in content:
-                if('※ 文章網址: ' in __):
+                if('※ 發信站: ' in __):
                     index = cc
                 cc += 1
-
-            for line in content[index+1:]:
+            for line in content[index:]:
                 line = line.split()
                 if( len(line) <= 1 ):
                     continue
@@ -165,6 +168,7 @@ else:
                     print("????????????")
                     print(content)
                     sys.exit(0)
+                
                 #break            
             #break
 
@@ -181,6 +185,11 @@ else:
          
         f.write('all like: {}\n'.format(like))
         f.write('all boo: {}\n'.format(boo))
+
+        for _ in temp[0]:
+            f.write(str(_)+"\n")
+        for _ in temp[1]:
+            f.write(str(_)+"\n")
 
         for _ in range(min(len(temp[0]),10)):
             f.write('like #{0}: {1} {2}\n'.format(_,temp[0][_][0],-temp[0][_][1]))
@@ -221,13 +230,79 @@ else:
                 sys.exit(0)
         
             soup = bf(r.text.encode('utf-8'),"html.parser")
-            content = soup.text
-            content = soup.text.split()
+            content = soup.find_all('a')
 
             for mess in content:
-                if( mess[-3:]=='jpg' or mess[-4:]=='jpeg' or mess[-3:]=='png' or mess[-3:]=='gif'):
-                    f.write(mess+'\n')
+                ur = mess.get('href')
+                
+                if(ur[:4]=='http'):
+                    if( ur[-4:]=='.jpg' or ur[-5:]=='.jpeg' or ur[-4:]=='.png' or ur[-4:]=='.gif'):
+                            f.write(ur+'\n')
+                    
 
 
-    elif(sys.argv[1] == 'keyword'):
-        pass
+    elif('keyword' in sys.argv[1]):
+        
+        ll = sys.argv[1].find('(')
+        rr = sys.argv[1].rfind(')')
+            
+        keyword = sys.argv[1][ll+1:rr]
+        print(keyword)
+        start_date = int(sys.argv[2])
+        end_date = int(sys.argv[3])
+        
+        data=[]
+        f = open('all_articles.txt','r')
+        for line in f:
+
+            ll = line.find(',')
+            rr = line.rfind(',')
+            temp = [int(line[:ll]),line[ll+1:rr],line[rr+1:-1]]
+
+            if( not ( (temp[0] <= end_date) and (temp[0] >= start_date))):
+                continue    
+            data.append(temp)
+        
+        like=0
+        boo=0
+
+
+        f = open('keyword[{0}-{1}].txt'.format(start_date,end_date),'w')      
+
+        for line in data:
+            time.sleep(0.05)
+            try:
+                r = requests.get(line[2])
+            except requests.exceptions.MissingSchema:
+                print(line)
+                sys.exit(0)
+        
+            soup = bf(r.text.encode('utf-8'),"html.parser")
+            content = soup.text
+            content = soup.text.split("\n")
+
+            checker = False
+
+            for mess in content:
+                if('作者' in mess):
+                    checker = True
+                if(checker == False):
+                    continue
+                if('※ 發信站:' in mess):
+                    break
+                
+                if(keyword in mess):
+                    for ur_temp in soup.find_all('a'):
+                        ur = ur_temp.get('href')
+                        
+                        if(ur[:4]=='http'):
+                            if( ur[-4:]=='.jpg' or ur[-5:]=='.jpeg' or ur[-4:]=='.png' or ur[-4:]=='.gif'):
+                                    f.write(ur+'\n')
+                            
+
+end_time = time.time()
+print('Time : '+ str(end_time-start_time) + ' sec.')
+
+
+
+
