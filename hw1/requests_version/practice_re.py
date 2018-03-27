@@ -241,15 +241,12 @@ else:
                     
 
 
-    elif('keyword' in sys.argv[1]):
+    elif('keyword' == sys.argv[1]):
         
-        ll = sys.argv[1].find('(')
-        rr = sys.argv[1].rfind(')')
-            
-        keyword = sys.argv[1][ll+1:rr]
+        keyword = sys.argv[2]
         print(keyword)
-        start_date = int(sys.argv[2])
-        end_date = int(sys.argv[3])
+        start_date = int(sys.argv[3])
+        end_date = int(sys.argv[4])
         
         data=[]
         f = open('all_articles.txt','r')
@@ -267,7 +264,7 @@ else:
         boo=0
 
 
-        f = open('keyword[{0}-{1}].txt'.format(start_date,end_date),'w')      
+        f = open('keyword({0})[{1}-{2}].txt'.format(keyword,start_date,end_date),'w')      
 
         for line in data:
             time.sleep(0.05)
