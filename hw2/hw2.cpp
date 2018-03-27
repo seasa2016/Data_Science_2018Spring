@@ -45,11 +45,24 @@ class fp_growth{
             }
             */    
         }
-        
+        void fp_build()
+        void fp_mining();
+        void fp_output();
 }
 
 
+void fp_growth::fp_build()
+{
 
+}
+void fp_growth::fp_mining()
+{
+
+}
+void fp_growth::fp_output()
+{
+
+}
 
 int main(int argc,char *argv[])
 {
