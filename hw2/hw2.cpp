@@ -29,8 +29,8 @@ class fp_growth{
             tree_node* next;
         }*root;
 
-        
-        
+        tree_node* (find_root[8][1000]) = {0};
+
     public:
         fp_growth(double freq,string in,string out)
         {
@@ -131,14 +131,21 @@ DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
     int size = pt->transactions.size();
     int ssize;
 
-    tree_node *tree
+    tree_node *tree_root;
     for(int i=0 ; i<size ; i++)
     {
-        if(pt->transactions[i] % pt->thread == index)
+        if(pt->transactions[i][0] % pt->thread == index)
         {
+            tree_root = &pt->root[ pt->transactions[i][0] ];
+
+            tree_root->time++;
+            
+            find_root[index][ pt->transactions[i][0] ]
+
             ssize = pt->transactions[i].size();
-            for(int j=0 ; j<ssize ; j++)
+            for(int j=1 ; j<ssize ; j++)
             {
+                tree_root->child[ pt->transactions[i][j] ] = new tree_node;
 
             }
         }
