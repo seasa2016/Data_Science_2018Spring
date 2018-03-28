@@ -21,12 +21,23 @@ class fp_growth{
 
         static DWORD WINAPI counting_Thread(LPVOID lpParameter);
         static DWORD WINAPI sorting_Thread(LPVOID lpParameter);
+        static DWORD WINAPI making_tree_Thread(LPVOID lpParameter);
+
+        struct tree_node{
+            int time;
+            map< int , tree_node*> child;
+            tree_node* next;
+        }*root;
+
+        
+        
     public:
         fp_growth(double freq,string in,string out)
         {
             this->freq = freq;
             this->in = in;
             this->out = out;
+            root = new tree_node[1000];
         }
         void print()
         {
@@ -105,6 +116,37 @@ DWORD WINAPI fp_growth::sorting_Thread(LPVOID lpParameter)
     return 0;
 }
 
+DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
+{
+    /*
+    first decode the input range
+    than start to deal with it
+    */
+    pair<fp_growth*,int> *te= static_cast< pair<fp_growth*,int>* >(lpParameter);
+    
+    fp_growth* pt = static_cast<fp_growth *>(te->first);
+    int index = te->second;
+    
+    //use the random idea, we should be able to use mod to get eight same size part
+    int size = pt->transactions.size();
+    int ssize;
+
+    tree_node *tree
+    for(int i=0 ; i<size ; i++)
+    {
+        if(pt->transactions[i] % pt->thread == index)
+        {
+            ssize = pt->transactions[i].size();
+            for(int j=0 ; j<ssize ; j++)
+            {
+
+            }
+        }
+    }
+    return 0;
+}
+
+
 void fp_growth::fp_build()
 {
     //in this place we should part the data in to eight part 
@@ -149,9 +191,14 @@ void fp_growth::fp_build()
     for(int i=0 ; i<8 ; i++)
         WaitForSingleObject(myHandle[i],INFINITE);
    
-   //this->print();
-    //finfish of sorting so its time to make the tree
+    //this->print();
 
+
+    //finfish of sorting so its time to make the tree
+    for(int i=0 ; i<8 ; i++)
+        myHandle[i] = CreateThread(0, 0, fp_growth::making_tree__Thread, &para[i], 0, &myThreadID[i]);
+    for(int i=0 ; i<8 ; i++)
+        WaitForSingleObject(myHandle[i],INFINITE);
 }
 void fp_growth::fp_mining()
 {
