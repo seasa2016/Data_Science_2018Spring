@@ -4,8 +4,10 @@
 #include<iostream>
 #include <windows.h>
 #include<utility>
+#include<algorithm>
 
 using namespace std;
+int compare_value[1000];
 
 class fp_growth{
     private:
@@ -18,12 +20,22 @@ class fp_growth{
         pair<int,int> range[8];
 
         static DWORD WINAPI counting_Thread(LPVOID lpParameter);
+        static DWORD WINAPI sorting_Thread(LPVOID lpParameter);
     public:
         fp_growth(double freq,string in,string out)
         {
             this->freq = freq;
             this->in = in;
             this->out = out;
+        }
+        void print()
+        {
+            for(int i=0 ; i < transactions.size() ; i++)
+            {
+                for(int j=0 ; j < transactions[i].size() ; j++)
+                    printf("%d ",transactions[i][j]);
+                printf("\n");
+            }
         }
         void input()
         {
@@ -43,15 +55,6 @@ class fp_growth{
                 
                 transactions.push_back(arr);
             }
-                
-            /*
-            for(int i=0 ; i < transactions.size() ; i++)
-            {
-                for(int j=0 ; j < transactions[i].size() ; j++)
-                    printf("%d ",transactions[i][j]);
-                printf("\n");
-            }*/
-                
         }
         void fp_build();
         void fp_mining();
@@ -69,18 +72,36 @@ DWORD WINAPI fp_growth::counting_Thread(LPVOID lpParameter)
     fp_growth* pt = static_cast<fp_growth *>(te->first);
     int index = te->second;
     
-    //printf("???");
     int size;
     for(int i = pt->range[index].first ; i < pt->range[index].second ; i++ )
     {
-        printf("i:%d\n",i);
         size = pt->transactions[i].size();
         for(int j=0 ; j<size ; j++)
             pt->count[index][ pt->transactions[i][j] ]++;
     }
-    
-    //printf("???");
+    return 0;
+}
 
+int compare(int i,int j)
+{
+    return compare_value[i] > compare_value[j];
+}
+
+DWORD WINAPI fp_growth::sorting_Thread(LPVOID lpParameter)
+{
+    /*
+    first decode the input range
+    than start to deal with it
+    */
+    pair<fp_growth*,int> *te= static_cast< pair<fp_growth*,int>* >(lpParameter);
+    
+    fp_growth* pt = static_cast<fp_growth *>(te->first);
+    int index = te->second;
+    
+    int size;
+    for(int i = pt->range[index].first ; i < pt->range[index].second ; i++ )
+        sort(pt->transactions[i].begin(),pt->transactions[i].end(),compare);
+    
     return 0;
 }
 
@@ -115,9 +136,22 @@ void fp_growth::fp_build()
     for(int i=1;i<8;i++)
         for(int j=0;j<1000;j++)
             count[0][j] += count[i][j];
-    
+
     for(int i=0;i<1000;i++)
-        printf("%d ",count[0][i]);
+    {
+        compare_value[i] = count[0][i];
+        //printf("%d ",compare_value[i]);
+    }     
+    printf("\n");
+
+    for(int i=0 ; i<8 ; i++)
+        myHandle[i] = CreateThread(0, 0, fp_growth::sorting_Thread, &para[i], 0, &myThreadID[i]);
+    for(int i=0 ; i<8 ; i++)
+        WaitForSingleObject(myHandle[i],INFINITE);
+   
+   //this->print();
+    //finfish of sorting so its time to make the tree
+
 }
 void fp_growth::fp_mining()
 {
