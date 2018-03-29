@@ -5,6 +5,8 @@
 #include <windows.h>
 #include<utility>
 #include<algorithm>
+#include<map>
+#include<queue>
 
 using namespace std;
 int compare_value[1000];
@@ -18,20 +20,46 @@ class fp_growth{
         int thread = 8;
         int count[8][1000] = {0};
         pair<int,int> range[8];
-
+        
         static DWORD WINAPI counting_Thread(LPVOID lpParameter);
         static DWORD WINAPI sorting_Thread(LPVOID lpParameter);
         static DWORD WINAPI making_tree_Thread(LPVOID lpParameter);
 
         struct tree_node{
             int time;
+            int value;
             map< int , tree_node*> child;
-            tree_node* next;
-        }*root;
+            tree_node* next = NULL;
+            tree_node* back = NULL;
+        }*root; //root of the fp tree
 
         tree_node* (find_root[8][1000]) = {0};
 
     public:
+        void print_tree(int index)
+        {
+            queue< tree_node* > parser;
+            
+            for(int i=index ; i<1000 ; i+=8)
+            {        
+                tree_root = this->root[i];
+                parser.push(tree_root);
+
+                while(!parser.empty())
+                {
+                    tree_root = parser.front();
+                    parser.pop();
+                    printf("%d  ",tree_root->value);
+                    
+                    for(pair< int , tree_node* > temp : tree_root->child)
+                    {
+                        parser.push(temp.second);
+                    }
+                }
+                printf("\n");
+            }
+            
+        }
         fp_growth(double freq,string in,string out)
         {
             this->freq = freq;
@@ -136,25 +164,67 @@ DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
     {
         if(pt->transactions[i][0] % pt->thread == index)
         {
+            printf("%d  ",pt->transactions[i][0]);
             tree_root = &pt->root[ pt->transactions[i][0] ];
-
             tree_root->time++;
-            
-            find_root[index][ pt->transactions[i][0] ]
+            tree_root->value = pt->transactions[i][0];
+
+            if( pt->find_root[index][ pt->transactions[i][0] ] == NULL )
+            {
+                tree_root->next = pt->find_root[index][ pt->transactions[i][0] ];
+                tree_root->back = NULL;
+                pt->find_root[index][ pt->transactions[i][0] ] = tree_root;
+            }
+            else
+            {
+                tree_root->next = pt->find_root[index][ pt->transactions[i][0] ] ;
+                tree_root->back = pt->find_root[index][ pt->transactions[i][0] ]->back ;
+                pt->find_root[index][ pt->transactions[i][0] ]->back = tree_root ;
+                pt->find_root[index][ pt->transactions[i][0] ] = tree_root;
+            }
 
             ssize = pt->transactions[i].size();
             for(int j=1 ; j<ssize ; j++)
             {
-                tree_root->child[ pt->transactions[i][j] ] = new tree_node;
+                printf("%d  ",pt->transactions[i][j]);
 
+                if( tree_root->child[ pt->transactions[i][j] ] == NULL )
+                {
+                    tree_root->child[ pt->transactions[i][j] ] = new tree_node;
+                    tree_root = tree_root->child[ pt->transactions[i][j] ];
+
+                    tree_root->value = pt->transactions[i][j]; 
+                    
+                    if( pt->find_root[index][ pt->transactions[i][j] ] == NULL )
+                    {
+                        tree_root->next = pt->find_root[index][ pt->transactions[i][j] ];
+                        tree_root->back = NULL;
+                        pt->find_root[index][ pt->transactions[i][j] ] = tree_root;
+                    }
+                    else
+                    {
+                        tree_root->next = pt->find_root[index][ pt->transactions[i][j] ] ;
+                        tree_root->back = pt->find_root[index][ pt->transactions[i][j] ]->back ;
+                        pt->find_root[index][ pt->transactions[i][j] ]->back = tree_root ;
+                        pt->find_root[index][ pt->transactions[i][j] ] = tree_root;
+                    }
+                }
+                else
+                {
+                    tree_root = tree_root->child[ pt->transactions[i][j] ];    
+                }
+
+                tree_root->time++;
             }
+            printf("\n");
         }
     }
+    
     return 0;
 }
 
 
-void fp_growth::fp_build()
+void fp_growth::fp_build()               
 {
     //in this place we should part the data in to eight part 
     int size = this->transactions.size();
@@ -203,7 +273,7 @@ void fp_growth::fp_build()
 
     //finfish of sorting so its time to make the tree
     for(int i=0 ; i<8 ; i++)
-        myHandle[i] = CreateThread(0, 0, fp_growth::making_tree__Thread, &para[i], 0, &myThreadID[i]);
+        myHandle[i] = CreateThread(0, 0, fp_growth::making_tree_Thread, &para[i], 0, &myThreadID[i]);
     for(int i=0 ; i<8 ; i++)
         WaitForSingleObject(myHandle[i],INFINITE);
 }
