@@ -106,6 +106,41 @@ class fp_growth{
         void fp_output();
 };
 
+DWORD WINAPI fp_growth::mining_Thread(LPVOID lpParameter)
+{
+    /*
+    first decode the input range
+    than start to deal with it
+    */
+    pair<fp_growth*,int> *te= static_cast< pair<fp_growth*,int>* >(lpParameter);
+    
+    fp_growth* pt = static_cast<fp_growth *>(te->first);
+    int index = te->second;
+    
+    tree_node *temp;
+
+    for(int i=999 ; i>=0 ; i--)
+    {
+        if( pt->find_root[index][i] != NULL)
+        {
+            temp = pt->find_root[index][i];
+
+            if(temp->check == false)    
+            {
+                /*
+                find to the top and collect all the combination
+                */
+
+            }
+
+            temp = temp->next;
+        }
+    }
+
+
+    return 0;
+}
+
 DWORD WINAPI fp_growth::counting_Thread(LPVOID lpParameter)
 {
     /*
@@ -135,7 +170,7 @@ int compare(int i,int j)
 }
 
 DWORD WINAPI fp_growth::sorting_Thread(LPVOID lpParameter)
-{
+{ 
     /*
     first decode the input range
     than start to deal with it
@@ -230,11 +265,6 @@ DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
         }
     }
     
-    //start making string
-    /*for(int i=0)
-    {
-
-    }*/
 
     return 0;
 }
@@ -297,13 +327,17 @@ void fp_growth::fp_build()
         this->rule[i] = i;
     sort(this->rule,this->rule+1000,compare);
 
+    /*
     for(int i=0;i<1000;i++)
         printf("%d ",this->rule[i]);
-    printf("\n");
+    printf("\n");*/
 }
 void fp_growth::fp_mining()
 {
-
+    for(int i=0 ; i<8 ; i++)
+        myHandle[i] = CreateThread(0, 0, fp_growth::mining_Thread, &para[i], 0, &myThreadID[i]);
+    for(int i=0 ; i<8 ; i++)
+        WaitForSingleObject(myHandle[i],INFINITE);
 }
 void fp_growth::fp_output()
 {
