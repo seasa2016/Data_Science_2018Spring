@@ -47,8 +47,8 @@ class fp_growth{
         static DWORD WINAPI mining_Thread(LPVOID lpParameter);
 
         struct tree_node{
-            int time;
-            int value;
+            int time=0;
+            int value=-1;
             map< int , tree_node*> child;
             tree_node* next = NULL;
             tree_node* back = NULL;
@@ -68,21 +68,24 @@ class fp_growth{
 
             for(int i=index ; i<1000 ; i+=8)
             {        
-                tree_root = &this->root[i];
-                parser.push(tree_root);
-
-                while(!parser.empty())
+                if(this->root[i].time)
                 {
-                    tree_root = parser.front();
-                    parser.pop();
-                    printf("%d  ",tree_root->value);
-                    
-                    for(pair< int , tree_node* > temp : tree_root->child)
+                    tree_root = &this->root[i];
+                    parser.push(tree_root);
+
+                    while(!parser.empty())
                     {
-                        parser.push(temp.second);
+                        tree_root = parser.front();
+                        parser.pop();
+                        printf("%d  ",tree_root->value);
+                        
+                        for(pair< int , tree_node* > temp : tree_root->child)
+                        {
+                            parser.push(temp.second);
+                        }
                     }
+                    printf("\n");
                 }
-                printf("\n");
             }
             
         }
@@ -142,7 +145,7 @@ void fp_growth::permutate(vector< pair<int,int> > &out,vector< int > &in,map< se
         pre.insert(in[i]);
         temp.push_back( pre );
     }
-    
+    printf("test???");
     for(int i=out.size()-1 ; i>=0 ; i--)
     {
         for( set<int> data : temp)
@@ -174,21 +177,25 @@ DWORD WINAPI fp_growth::mining_Thread(LPVOID lpParameter)
     fp_growth* pt = static_cast<fp_growth *>(te->first);
     int index = te->second;
     
-    tree_node *temp;
+    tree_node *temp,*now;
 
     vector< pair<int,int> > list1;
     vector< int > list2;
     for(int i=999 ; i>=0 ; i--)
     {
-        if( pt->find_root[index][i] != NULL)
+        now = pt->find_root[index][ pt->rule[i] ];
+        if(now)
+            printf("\n");
+        while(now)
         {
-            temp = pt->find_root[index][i];
-
+            printf("%d ",pt->rule[i]);
+            temp = now;
             while(temp)    
             {
                 /*
                 find to the top and collect all the combination
                 */
+                //printf("%d ",temp->value);
                 if(temp->check == false)
                     list1.push_back( make_pair(temp->value,temp->time) );
                 else
@@ -197,10 +204,26 @@ DWORD WINAPI fp_growth::mining_Thread(LPVOID lpParameter)
                 temp->check = true;
                 temp = temp->up;
             }
-            //we now have the data, we then need to update the map
-            pt->permutate(list1,list2,pt->fin[index]);
-            temp = temp->next;
+            //printf("-\n");
+            /*if(list2.size()==0 && list1.size()!=0)
+            {
+                for(pair<int,int> qq :list1)
+                    printf("%d ",qq.first);
+                printf("\n");
+            }*/
+            
+            if(list1.size()!=0)
+            {
+                //we now have the data, we then need to update the map
+                pt->permutate(list1,list2,pt->fin[index]);
+            }
+            //printf("test");
+            list1.clear();
+            list2.clear();
+            
+            now = now->next;
         }
+    
     }
     return 0;
 }
@@ -276,17 +299,10 @@ DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
             tree_root->value = pt->transactions[i][0];
             tree_root->up = NULL;
 
-            if( pt->find_root[index][ pt->transactions[i][0] ] == NULL )
+            if( tree_root->time ==1 )
             {
                 tree_root->next = pt->find_root[index][ pt->transactions[i][0] ];
                 tree_root->back = NULL;
-                pt->find_root[index][ pt->transactions[i][0] ] = tree_root;
-            }
-            else
-            {
-                tree_root->next = pt->find_root[index][ pt->transactions[i][0] ] ;
-                tree_root->back = pt->find_root[index][ pt->transactions[i][0] ]->back ;
-                pt->find_root[index][ pt->transactions[i][0] ]->back = tree_root ;
                 pt->find_root[index][ pt->transactions[i][0] ] = tree_root;
             }
 
@@ -336,7 +352,7 @@ DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
 void fp_growth::fp_build()               
 {
     //in this place we should part the data in to eight part 
-    int dis = this->transactions.size() / 8;
+    int dis = this->transactions.size() / this->thread;
     HANDLE myHandle[8];
     DWORD myThreadID[8];
 
@@ -344,7 +360,7 @@ void fp_growth::fp_build()
 
     
     //create thread for counting
-    for(int i=0 ; i<8 ; i++)
+    for(int i=0 ; i<this->thread ; i++)
     {
         this->range[i].first = i * dis;
         this->range[i].second = (i+1) * dis;
@@ -356,10 +372,10 @@ void fp_growth::fp_build()
 
         myHandle[i] = CreateThread(0, 0, fp_growth::counting_Thread, &para[i], 0, &myThreadID[i]);
     }
-    for(int i=0 ; i<8 ; i++)
+    for(int i=0 ; i<this->thread ; i++)
         WaitForSingleObject(myHandle[i],INFINITE);
    
-    for(int i=1;i<8;i++)
+    for(int i=1;i<this->thread;i++)
         for(int j=0;j<1000;j++)
             count[0][j] += count[i][j];
 
@@ -370,18 +386,18 @@ void fp_growth::fp_build()
     }     
     printf("\n");
 
-    for(int i=0 ; i<8 ; i++)
+    for(int i=0 ; i<this->thread ; i++)
         myHandle[i] = CreateThread(0, 0, fp_growth::sorting_Thread, &para[i], 0, &myThreadID[i]);
-    for(int i=0 ; i<8 ; i++)
+    for(int i=0 ; i<this->thread ; i++)
         WaitForSingleObject(myHandle[i],INFINITE);
    
     //this->print();
 
 
     //finfish of sorting so its time to make the tree
-    for(int i=0 ; i<8 ; i++)
+    for(int i=0 ; i<this->thread ; i++)
         myHandle[i] = CreateThread(0, 0, fp_growth::making_tree_Thread, &para[i], 0, &myThreadID[i]);
-    for(int i=0 ; i<8 ; i++)
+    for(int i=0 ; i<this->thread ; i++)
         WaitForSingleObject(myHandle[i],INFINITE);
     
     for(int i=0;i<1000;i++)
@@ -400,17 +416,20 @@ void fp_growth::fp_mining()
 
     pair<fp_growth*,int >para[8];
 
-    for(int i=0 ; i<8 ; i++)
+    this->print_tree(0);
+    printf("test\n"); 
+    //for(int i=0 ; i<this->thread ; i++)
+    for(int i=0 ; i<1 ; i++)
     {
         para[i].first = this;
         para[i].second = i;
         myHandle[i] = CreateThread(0, 0, fp_growth::mining_Thread, &para[i], 0, &myThreadID[i]);
     }
-    for(int i=0 ; i<8 ; i++)
+    for(int i=0 ; i<this->thread ; i++)
         WaitForSingleObject(myHandle[i],INFINITE);
 
-        
-    for(int i=0 ; i<8 ; i++)
+    printf("test\n");        
+    for(int i=0 ; i<this->thread ; i++)
     {
         for( pair< set<int> , int> data: this->fin[i])
         {
@@ -452,8 +471,9 @@ int main(int argc,char *argv[])
     test.input();
 
     test.fp_build();
+    printf("test\n"); 
     test.fp_mining();
-    test.fp_output();
+    //test.fp_output();
     
     return 0;
 }
