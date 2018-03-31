@@ -2,7 +2,7 @@
 #include<stdio.h>
 #include<sstream>
 #include<iostream>
-#include <windows.h>
+#include<windows.h>
 #include<utility>
 #include<algorithm>
 #include<map>
@@ -20,7 +20,9 @@ class fp_growth{
         int thread = 8;
         int count[8][1000] = {0};
         pair<int,int> range[8];
-        
+
+        int rule[1000]={0};
+
         static DWORD WINAPI counting_Thread(LPVOID lpParameter);
         static DWORD WINAPI sorting_Thread(LPVOID lpParameter);
         static DWORD WINAPI making_tree_Thread(LPVOID lpParameter);
@@ -31,6 +33,9 @@ class fp_growth{
             map< int , tree_node*> child;
             tree_node* next = NULL;
             tree_node* back = NULL;
+            
+            bool check = false;
+            tree_node* up = NULL;
         }*root; //root of the fp tree
 
         tree_node* (find_root[8][1000]) = {0};
@@ -39,10 +44,11 @@ class fp_growth{
         void print_tree(int index)
         {
             queue< tree_node* > parser;
-            
+            tree_node * tree_root;
+
             for(int i=index ; i<1000 ; i+=8)
             {        
-                tree_root = this->root[i];
+                tree_root = &this->root[i];
                 parser.push(tree_root);
 
                 while(!parser.empty())
@@ -123,7 +129,9 @@ DWORD WINAPI fp_growth::counting_Thread(LPVOID lpParameter)
 
 int compare(int i,int j)
 {
-    return compare_value[i] > compare_value[j];
+    if(compare_value[i] != compare_value[j])
+        return compare_value[i] > compare_value[j];
+    return i>j;
 }
 
 DWORD WINAPI fp_growth::sorting_Thread(LPVOID lpParameter)
@@ -164,10 +172,11 @@ DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
     {
         if(pt->transactions[i][0] % pt->thread == index)
         {
-            printf("%d  ",pt->transactions[i][0]);
+            //printf("%d  ",pt->transactions[i][0]);
             tree_root = &pt->root[ pt->transactions[i][0] ];
             tree_root->time++;
             tree_root->value = pt->transactions[i][0];
+            tree_root->up = NULL;
 
             if( pt->find_root[index][ pt->transactions[i][0] ] == NULL )
             {
@@ -186,13 +195,14 @@ DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
             ssize = pt->transactions[i].size();
             for(int j=1 ; j<ssize ; j++)
             {
-                printf("%d  ",pt->transactions[i][j]);
+                //printf("%d  ",pt->transactions[i][j]);
 
                 if( tree_root->child[ pt->transactions[i][j] ] == NULL )
                 {
                     tree_root->child[ pt->transactions[i][j] ] = new tree_node;
-                    tree_root = tree_root->child[ pt->transactions[i][j] ];
+                    tree_root->child[ pt->transactions[i][j] ]->up = tree_root;
 
+                    tree_root = tree_root->child[ pt->transactions[i][j] ];
                     tree_root->value = pt->transactions[i][j]; 
                     
                     if( pt->find_root[index][ pt->transactions[i][j] ] == NULL )
@@ -216,10 +226,16 @@ DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
 
                 tree_root->time++;
             }
-            printf("\n");
+            //printf("\n");
         }
     }
     
+    //start making string
+    /*for(int i=0)
+    {
+
+    }*/
+
     return 0;
 }
 
@@ -276,6 +292,14 @@ void fp_growth::fp_build()
         myHandle[i] = CreateThread(0, 0, fp_growth::making_tree_Thread, &para[i], 0, &myThreadID[i]);
     for(int i=0 ; i<8 ; i++)
         WaitForSingleObject(myHandle[i],INFINITE);
+    
+    for(int i=0;i<1000;i++)
+        this->rule[i] = i;
+    sort(this->rule,this->rule+1000,compare);
+
+    for(int i=0;i<1000;i++)
+        printf("%d ",this->rule[i]);
+    printf("\n");
 }
 void fp_growth::fp_mining()
 {
@@ -305,8 +329,8 @@ int main(int argc,char *argv[])
     test.input();
 
     test.fp_build();
-    test.fp_mining();
-    test.fp_output();
+    //test.fp_mining();
+    //test.fp_output();
     
     return 0;
 }
