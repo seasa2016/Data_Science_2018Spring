@@ -24,12 +24,13 @@ class compare_set{
                     if(*it1 != *it2)
                         return *it1 < *it2;
                 }
-            return 1==1;
+            return false;
         }
 };
 class fp_growth{
     private:
         double freq;
+        int size;
         string in;
         string out;
         vector< vector<int> >  transactions;
@@ -77,7 +78,7 @@ class fp_growth{
                     {
                         tree_root = parser.front();
                         parser.pop();
-                        printf("%d  ",tree_root->value);
+                        printf("-(%d %d %d)",tree_root->value,tree_root->time,tree_root->check);
                         
                         for(pair< int , tree_node* > temp : tree_root->child)
                         {
@@ -112,8 +113,10 @@ class fp_growth{
             string line;
             //read until EOF
             
+            int i=0;
             while(!getline(cin, line).eof())
             {
+                i++;
                 vector<int> arr;
                 istringstream ssline(line);
                 
@@ -123,6 +126,7 @@ class fp_growth{
                 
                 transactions.push_back(arr);
             }
+            this->size = i;
         }
         void fp_build();
         void fp_mining();
@@ -133,34 +137,43 @@ void fp_growth::permutate(vector< pair<int,int> > &out,vector< int > &in,map< se
     set<int> pre;
 
     vector< set<int> > temp;
+    set<int> temp_set;
     
     for(int i=0,size=in.size() ; i<size ; i++)
     {
-        for( set<int> data : temp)
+        for(int j=0,ssize =temp.size() ; j<ssize ; j++)
         {
-            data.insert( in[i] );
-            temp.push_back( data );
-        }
+            temp_set = temp[j];
+            
+            temp_set.insert( in[i] );
+            temp.push_back( temp_set );
+        } 
         pre.clear();
         pre.insert(in[i]);
         temp.push_back( pre );
     }
-    printf("test???");
+
     for(int i=out.size()-1 ; i>=0 ; i--)
     {
-        for( set<int> data : temp)
+        for(int j=0,size =temp.size() ; j<size ; j++)
         {
-            data.insert( out[i].first );
-            temp.push_back( data );
+            temp_set = temp[j];
             
-            if( now.find(data) != now.end())
-                now[data] += out[i].second;
+            temp_set.insert( out[i].first );
+            temp.push_back( temp_set );
+            
+            if( now.find(temp_set) != now.end())
+                now[ temp_set ] += out[i].second;
             else
-                now[data] = out[i].second;
+                now[ temp_set ] = out[i].second;
+            
         } 
         pre.clear();
         pre.insert(out[i].first);
-        now[pre] = out[i].second;
+        if( now.find(pre) != now.end())
+            now[ pre ] += out[i].second;
+        else
+            now[ pre ] = out[i].second;
         
         temp.push_back( pre );
     }
@@ -184,40 +197,34 @@ DWORD WINAPI fp_growth::mining_Thread(LPVOID lpParameter)
     for(int i=999 ; i>=0 ; i--)
     {
         now = pt->find_root[index][ pt->rule[i] ];
-        if(now)
-            printf("\n");
         while(now)
         {
-            printf("%d ",pt->rule[i]);
             temp = now;
             while(temp)    
             {
                 /*
                 find to the top and collect all the combination
                 */
-                //printf("%d ",temp->value);
                 if(temp->check == false)
+                {
                     list1.push_back( make_pair(temp->value,temp->time) );
+                }   
                 else
+                {
                     list2.push_back( temp->value );
+                }
+                    
 
                 temp->check = true;
                 temp = temp->up;
             }
-            //printf("-\n");
-            /*if(list2.size()==0 && list1.size()!=0)
-            {
-                for(pair<int,int> qq :list1)
-                    printf("%d ",qq.first);
-                printf("\n");
-            }*/
             
+            //pt->print_tree(0);
             if(list1.size()!=0)
             {
                 //we now have the data, we then need to update the map
                 pt->permutate(list1,list2,pt->fin[index]);
             }
-            //printf("test");
             list1.clear();
             list2.clear();
             
@@ -301,8 +308,18 @@ DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
 
             if( tree_root->time ==1 )
             {
-                tree_root->next = pt->find_root[index][ pt->transactions[i][0] ];
-                tree_root->back = NULL;
+                if(pt->find_root[index][ pt->transactions[i][0] ]==NULL)
+                {
+                    tree_root->next = NULL;
+                    tree_root->back = NULL;
+                }
+                else
+                {
+                    tree_root->next = pt->find_root[index][ pt->transactions[i][0] ];
+                    tree_root->back = pt->find_root[index][ pt->transactions[i][0] ]->back;
+                    pt->find_root[index][ pt->transactions[i][0] ]->back = tree_root;
+                }
+                
                 pt->find_root[index][ pt->transactions[i][0] ] = tree_root;
             }
 
@@ -311,7 +328,7 @@ DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
             {
                 //printf("%d  ",pt->transactions[i][j]);
 
-                if( tree_root->child[ pt->transactions[i][j] ] == NULL )
+                if( tree_root->child.find(pt->transactions[i][j]) == tree_root->child.end() )
                 {
                     tree_root->child[ pt->transactions[i][j] ] = new tree_node;
                     tree_root->child[ pt->transactions[i][j] ]->up = tree_root;
@@ -321,7 +338,7 @@ DWORD WINAPI fp_growth::making_tree_Thread(LPVOID lpParameter)
                     
                     if( pt->find_root[index][ pt->transactions[i][j] ] == NULL )
                     {
-                        tree_root->next = pt->find_root[index][ pt->transactions[i][j] ];
+                        tree_root->next = NULL;
                         tree_root->back = NULL;
                         pt->find_root[index][ pt->transactions[i][j] ] = tree_root;
                     }
@@ -384,14 +401,12 @@ void fp_growth::fp_build()
         compare_value[i] = count[0][i];
         //printf("%d ",compare_value[i]);
     }     
-    printf("\n");
-
+    
     for(int i=0 ; i<this->thread ; i++)
         myHandle[i] = CreateThread(0, 0, fp_growth::sorting_Thread, &para[i], 0, &myThreadID[i]);
     for(int i=0 ; i<this->thread ; i++)
         WaitForSingleObject(myHandle[i],INFINITE);
    
-    //this->print();
 
 
     //finfish of sorting so its time to make the tree
@@ -404,10 +419,7 @@ void fp_growth::fp_build()
         this->rule[i] = i;
     sort(this->rule,this->rule+1000,compare);
 
-    /*
-    for(int i=0;i<1000;i++)
-        printf("%d ",this->rule[i]);
-    printf("\n");*/
+    //print_tree(0);
 }
 void fp_growth::fp_mining()
 {
@@ -415,11 +427,8 @@ void fp_growth::fp_mining()
     DWORD myThreadID[8];
 
     pair<fp_growth*,int >para[8];
-
-    this->print_tree(0);
-    printf("test\n"); 
-    //for(int i=0 ; i<this->thread ; i++)
-    for(int i=0 ; i<1 ; i++)
+    //////////////////////////////////////////////////////////
+    for(int i=0 ; i<this->thread ; i++)
     {
         para[i].first = this;
         para[i].second = i;
@@ -428,7 +437,6 @@ void fp_growth::fp_mining()
     for(int i=0 ; i<this->thread ; i++)
         WaitForSingleObject(myHandle[i],INFINITE);
 
-    printf("test\n");        
     for(int i=0 ; i<this->thread ; i++)
     {
         for( pair< set<int> , int> data: this->fin[i])
@@ -445,10 +453,20 @@ void fp_growth::fp_output()
     for( pair< set<int> , int> data: this->ans)
     {
         //2,3:0.1000
-        for (std::set<int>::iterator it=data.first.begin(); it!=(data.first.end()--); it++)
-            printf("%d,",*it);
-        printf("%d:%d\n",*data.first.end(),data.second);
-
+        //if(true)
+        std::set<int>::iterator it;
+        int i,size;
+        if( ((double)data.second/this->size - this->freq) > -(1E-06) )
+        {
+            for (i=0,size=data.first.size() ,it=data.first.begin(); it!=(data.first.end());i++, it++)
+            {
+                if(i == size-1)
+                    printf("%d",*it);
+                else
+                    printf("%d,",*it);
+            }    
+            printf(":%.4lf\n",(double)data.second/this->size);
+        }
     }
 }
 
@@ -471,9 +489,8 @@ int main(int argc,char *argv[])
     test.input();
 
     test.fp_build();
-    printf("test\n"); 
     test.fp_mining();
-    //test.fp_output();
+    test.fp_output();
     
     return 0;
 }
