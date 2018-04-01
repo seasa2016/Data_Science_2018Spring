@@ -8,6 +8,7 @@
 #include<map>
 #include<queue>
 #include<set>
+#include<math.h>
 
 using namespace std;
 int compare_value[1000];
@@ -455,7 +456,8 @@ void fp_growth::fp_output()
         //2,3:0.1000
         //if(true)
         std::set<int>::iterator it;
-        int i,size;
+        int i,size,q;
+        double temp;
         if( ((double)data.second/this->size - this->freq) > -(1E-06) )
         {
             for (i=0,size=data.first.size() ,it=data.first.begin(); it!=(data.first.end());i++, it++)
@@ -464,8 +466,12 @@ void fp_growth::fp_output()
                     printf("%d",*it);
                 else
                     printf("%d,",*it);
-            }    
-            printf(":%.4lf\n",(double)data.second/this->size);
+            }
+            temp = (double)data.second/this->size;
+
+            q = round(temp*100000);
+            q = (q+q%10)/10;    
+            printf(":0.%d\n",q);
         }
     }
 }
