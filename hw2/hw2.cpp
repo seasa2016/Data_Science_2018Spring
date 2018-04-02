@@ -1,6 +1,7 @@
 #include<vector>
 #include<stdio.h>
 #include<sstream>
+#include <ctime>
 #include<iostream>
 #include<windows.h>
 #include<utility>
@@ -62,7 +63,7 @@ class fp_growth{
         tree_node* (find_root[8][1000]) = {0};
 
     public:
-        void permutate(vector< pair<int,int> >&,vector< int >&,map< set<int> , int ,compare_set>&);
+        void permutate(vector< pair<int,int> >&,vector< int >&,map< set<int> , int ,compare_set>&,int);
         void print_tree(int index)
         {
             queue< tree_node* > parser;
@@ -133,13 +134,12 @@ class fp_growth{
         void fp_mining();
         void fp_output();
 };
-void fp_growth::permutate(vector< pair<int,int> > &out,vector< int > &in,map< set<int> , int ,compare_set> &now)
+void fp_growth::permutate(vector< pair<int,int> > &out,vector< int > &in,map< set<int> , int ,compare_set> &now,int index=0)
 {
     set<int> pre;
 
     vector< set<int> > temp;
     set<int> temp_set;
-    
     for(int i=0,size=in.size() ; i<size ; i++)
     {
         for(int j=0,ssize =temp.size() ; j<ssize ; j++)
@@ -153,9 +153,10 @@ void fp_growth::permutate(vector< pair<int,int> > &out,vector< int > &in,map< se
         pre.insert(in[i]);
         temp.push_back( pre );
     }
-
+    printf("\nsize:%d %d\n",out.size(),temp.size());
     for(int i=out.size()-1 ; i>=0 ; i--)
     {
+        printf("%d ",temp.size());
         for(int j=0,size =temp.size() ; j<size ; j++)
         {
             temp_set = temp[j];
@@ -200,6 +201,7 @@ DWORD WINAPI fp_growth::mining_Thread(LPVOID lpParameter)
         now = pt->find_root[index][ pt->rule[i] ];
         while(now)
         {
+            printf("%d ",i);
             temp = now;
             while(temp)    
             {
@@ -224,7 +226,7 @@ DWORD WINAPI fp_growth::mining_Thread(LPVOID lpParameter)
             if(list1.size()!=0)
             {
                 //we now have the data, we then need to update the map
-                pt->permutate(list1,list2,pt->fin[index]);
+                pt->permutate(list1,list2,pt->fin[index],index);
             }
             list1.clear();
             list2.clear();
@@ -424,20 +426,33 @@ void fp_growth::fp_build()
 }
 void fp_growth::fp_mining()
 {
+    printf("0\n");
     HANDLE myHandle[8];
     DWORD myThreadID[8];
 
     pair<fp_growth*,int >para[8];
     //////////////////////////////////////////////////////////
-    for(int i=0 ; i<this->thread ; i++)
+    printf("1\n");
+    
+    for(int i=0 ; i<2 ; i++)
     {
         para[i].first = this;
         para[i].second = i;
         myHandle[i] = CreateThread(0, 0, fp_growth::mining_Thread, &para[i], 0, &myThreadID[i]);
     }
-    for(int i=0 ; i<this->thread ; i++)
+    for(int i=0 ; i<2 ; i++)
         WaitForSingleObject(myHandle[i],INFINITE);
+    
+    /*
+    for(int i=0 ; i<2 ; i++)
+    {
+        para[i].first = this;
+        para[i].second = i;
+        myHandle[i] = CreateThread(0, 0, fp_growth::mining_Thread, &para[i], 0, &myThreadID[i]);
+        WaitForSingleObject(myHandle[i],INFINITE);
+    }*/
 
+    printf("2\n");
     for(int i=0 ; i<this->thread ; i++)
     {
         for( pair< set<int> , int> data: this->fin[i])
@@ -451,6 +466,9 @@ void fp_growth::fp_mining()
 }
 void fp_growth::fp_output()
 {
+    FILE *out;
+    out = fopen(this->out.c_str(),"w");
+
     for( pair< set<int> , int> data: this->ans)
     {
         //2,3:0.1000
@@ -463,21 +481,23 @@ void fp_growth::fp_output()
             for (i=0,size=data.first.size() ,it=data.first.begin(); it!=(data.first.end());i++, it++)
             {
                 if(i == size-1)
-                    printf("%d",*it);
+                    fprintf(out,"%d",*it);
                 else
-                    printf("%d,",*it);
+                    fprintf(out,"%d,",*it);
             }
             temp = (double)data.second/this->size;
 
             q = round(temp*100000);
             q = (q+q%10)/10;    
-            printf(":0.%d\n",q);
+            fprintf(out,":0.%d\n",q);
         }
     }
 }
 
 int main(int argc,char *argv[])
 {
+    clock_t start, stop;
+    start = clock(); //開始時間
     if(argc != 4)
     {
         fprintf(stderr,"there should be 4 command line input\n");
@@ -495,8 +515,15 @@ int main(int argc,char *argv[])
     test.input();
 
     test.fp_build();
+    printf("test_build\n");
+    printf("?????????\n");
     test.fp_mining();
+    printf("test_mining\n");
     test.fp_output();
+    printf("test_output\n");
     
+    
+    stop = clock(); //結束時間
+    cout << double(stop - start) / CLOCKS_PER_SEC <<endl;
     return 0;
 }
