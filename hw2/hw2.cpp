@@ -1,7 +1,7 @@
 #include<vector>
-#include<stdio.h>
+#include<cstdio>
 #include<sstream>
-#include <ctime>
+#include<ctime>
 #include<iostream>
 #include<windows.h>
 #include<utility>
@@ -9,7 +9,7 @@
 #include<map>
 #include<queue>
 #include<set>
-#include<math.h>
+#include<cmath>
 
 using namespace std;
 int compare_value[1000];
@@ -140,6 +140,8 @@ void fp_growth::permutate(vector< pair<int,int> > &out,vector< int > &in,map< se
 
     vector< set<int> > temp;
     set<int> temp_set;
+    bool key1=false;
+
     for(int i=0,size=in.size() ; i<size ; i++)
     {
         for(int j=0,ssize =temp.size() ; j<ssize ; j++)
@@ -156,9 +158,9 @@ void fp_growth::permutate(vector< pair<int,int> > &out,vector< int > &in,map< se
     printf("\nsize:%d %d\n",out.size(),temp.size());
     for(int i=out.size()-1 ; i>=0 ; i--)
     {
-        printf("%d ",temp.size());
         for(int j=0,size =temp.size() ; j<size ; j++)
         {
+            //printf("%d ",sizeof(temp));
             temp_set = temp[j];
             
             temp_set.insert( out[i].first );
@@ -497,7 +499,7 @@ void fp_growth::fp_output()
 int main(int argc,char *argv[])
 {
     clock_t start, stop;
-    start = clock(); //開始時間
+    start = clock();
     if(argc != 4)
     {
         fprintf(stderr,"there should be 4 command line input\n");
@@ -523,7 +525,7 @@ int main(int argc,char *argv[])
     printf("test_output\n");
     
     
-    stop = clock(); //結束時間
+    stop = clock(); 
     cout << double(stop - start) / CLOCKS_PER_SEC <<endl;
     return 0;
 }
