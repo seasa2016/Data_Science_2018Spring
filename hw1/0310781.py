@@ -244,7 +244,7 @@ else:
     elif('keyword' == sys.argv[1]):
         
         keyword = sys.argv[2]
-        print(keyword)
+       #print(keyword)
         start_date = int(sys.argv[3])
         end_date = int(sys.argv[4])
         
